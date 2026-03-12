@@ -1639,7 +1639,7 @@ class FlashInferIndicesUpdaterPOD:
             max_bs + 1, dtype=torch.int32, device=device
         )
         self._pod_kv_indices_buffer = torch.empty(
-            kv_indices_size * 2,  # Reserve space for both prefill and decode
+            kv_indices_size,  # Reserve space for both prefill and decode
             dtype=torch.int32,
             device=device,
         )
@@ -1758,9 +1758,10 @@ class FlashInferIndicesUpdaterPOD:
             if bs_d > 0:
                 kv_indptr_d_buf = kv_indptr_d[: bs_d + 1]
                 kv_indices_d = self._pod_kv_indices_buffer[
-                    paged_kernel_lens_sum_p : paged_kernel_lens_sum_p
-                    + paged_kernel_lens_sum_d
+                    paged_kernel_lens_sum_p
+                    + 256 : paged_kernel_lens_sum_p
                     + 256
+                    + paged_kernel_lens_sum_d
                 ]
                 create_flashinfer_kv_indices_triton[(bs_d,)](
                     self.req_to_token,
