@@ -1838,9 +1838,6 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
         self.is_prefill_only = False
 
         self.num_decoding_reqs = running_bs
-        logger.info(
-            f"Mixed batch scheduling, perfill batch:{self.extend_num_tokens - running_bs}, decode batch:{running_bs}"
-        )
 
     def new_tokens_required_next_decode(
         self, selected_indices: Optional[List[int]] = None

@@ -174,7 +174,7 @@ class FlashInferAttnBackend(AttentionBackend):
         self.max_context_len = model_runner.model_config.context_len
         self.skip_prefill = skip_prefill
         self.is_multimodal = model_runner.model_config.is_multimodal
-        self.use_pod = (
+        self.enable_pod_attention = (
             model_runner.server_args.enable_flashinfer_pod_attention
             and model_runner.server_args.enable_mixed_chunk
         )
@@ -249,7 +249,9 @@ class FlashInferAttnBackend(AttentionBackend):
             # For POD mode, we need 2 kv_indptr buffers (prefill + decode)
             # For other modes, we need num_wrappers kv_indptr buffers
             num_kv_indptr = (
-                2 if (self.use_pod and not skip_prefill) else self.num_wrappers
+                2
+                if (self.enable_pod_attention and not skip_prefill)
+                else self.num_wrappers
             )
             self.kv_indptr = [
                 torch.zeros(
@@ -273,7 +275,9 @@ class FlashInferAttnBackend(AttentionBackend):
             # For POD mode, we need 2 qo_indptr buffers (prefill + decode)
             # For other modes, we need num_wrappers qo_indptr buffers
             num_qo_indptr = (
-                2 if (self.use_pod and not skip_prefill) else self.num_wrappers
+                2
+                if (self.enable_pod_attention and not skip_prefill)
+                else self.num_wrappers
             )
             self.qo_indptr = [
                 torch.zeros(
@@ -305,7 +309,7 @@ class FlashInferAttnBackend(AttentionBackend):
         self.decode_wrappers = []
         self.pod_wrappers = []
         for _ in range(self.num_wrappers):
-            if self.use_pod and not skip_prefill:
+            if self.enable_pod_attention and not skip_prefill:
                 self.pod_wrappers.append(
                     BatchPODWithPagedKVCacheWrapper(
                         self.workspace_buffer,
@@ -342,7 +346,7 @@ class FlashInferAttnBackend(AttentionBackend):
             self.indices_updater_prefill = FlashInferIndicesUpdaterPrefill(
                 model_runner, self
             )  # for verify
-        if self.use_pod and not skip_prefill:
+        if self.enable_pod_attention and not skip_prefill:
             self.indices_updater_pod = FlashInferIndicesUpdaterPOD(model_runner, self)
 
         # Other metadata
@@ -478,7 +482,7 @@ class FlashInferAttnBackend(AttentionBackend):
     def init_forward_metadata(self, forward_batch: ForwardBatch):
         self.forward_metadata_pod = None
         if (
-            self.use_pod
+            self.enable_pod_attention
             and not self.skip_prefill
             and forward_batch.forward_mode.is_mixed()
         ):
@@ -1042,10 +1046,6 @@ class FlashInferAttnBackend(AttentionBackend):
         if num_tokens_d > 0:
             o[num_tokens_p:] = o_d.reshape(num_tokens_d, hidden_size)
 
-        if layer.layer_id == 0:
-            logger.info(
-                f"forward pod, prefill tokens: {num_tokens_p}, decode tokens: {num_tokens_d}"
-            )
         return o.view(-1, hidden_size)
 
     def _get_wrapper_idx(self, layer: RadixAttention):
