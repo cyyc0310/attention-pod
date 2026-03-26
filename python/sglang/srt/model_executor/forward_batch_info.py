@@ -426,7 +426,7 @@ class ForwardBatch(ForwardBatchDeepSeekMHAMixin):
     # For hisparse
     hisparse_coordinator: Optional[HiSparseCoordinator] = None
 
-    # For mixed chunked prefill (POD mode)
+    # For mixed chunked prefill with flashinfer POD-Attention
     num_decoding_reqs: Optional[int] = None
 
     # For ngram embedding

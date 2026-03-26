@@ -2525,5 +2525,5 @@ class ModelWorkerBatch:
     mamba_track_mask: Optional[torch.Tensor] = None  # shape: [b], bool
     mamba_track_seqlens: Optional[torch.Tensor] = None  # shape: [b], int64
 
-    # For POD mode
+    # For flashinfer POD-Attention
     num_decoding_reqs: Optional[int] = None
